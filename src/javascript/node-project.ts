@@ -713,7 +713,8 @@ export class NodeProject extends GitHubProject {
     const buildWorkflowOptions: BuildWorkflowOptions =
       options.buildWorkflowOptions ?? {};
 
-    const lockfileExcludePaths = this.package.allowExternalLockfileModification
+    const externalLockfile = this.package.allowExternalLockfileModification;
+    const lockfileExcludePaths = externalLockfile
       ? [this.package.lockFile]
       : [];
 
@@ -723,7 +724,7 @@ export class NodeProject extends GitHubProject {
         artifactsDirectory: this.artifactsDirectory,
         containerImage: options.workflowContainerImage,
         gitIdentity: this.workflowGitIdentity,
-        mutableBuild: options.mutableBuild,
+        mutableBuild: externalLockfile ? false : options.mutableBuild,
         workflowTriggers: options.buildWorkflowTriggers,
         permissions: workflowPermissions,
         mutationExcludePaths: lockfileExcludePaths,
@@ -732,11 +733,12 @@ export class NodeProject extends GitHubProject {
           installStepConfiguration: {
             workingDirectory: this.determineInstallWorkingDirectory(),
           },
-          mutable:
-            buildWorkflowOptions.mutableInstall ??
-            buildWorkflowOptions.mutableBuild ??
-            options.mutableBuild ??
-            true,
+          mutable: externalLockfile
+            ? false
+            : (buildWorkflowOptions.mutableInstall ??
+              buildWorkflowOptions.mutableBuild ??
+              options.mutableBuild ??
+              true),
         }).concat(buildWorkflowOptions.preBuildSteps ?? []),
         postBuildSteps: [...(options.postBuildSteps ?? [])],
         ...filteredRunsOnOptions(
