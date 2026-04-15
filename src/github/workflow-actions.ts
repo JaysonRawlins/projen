@@ -36,7 +36,7 @@ export class WorkflowActions {
         shell: "bash",
         run: [
           "git add .",
-          `git diff --staged --patch --exit-code > ${GIT_PATCH_FILE} || echo "${options.outputName}=true" >> $GITHUB_OUTPUT`,
+          `git diff --staged --patch --exit-code${options.excludePaths?.length ? " -- . " + options.excludePaths.map((p) => `':!${p}'`).join(" ") : ""} > ${GIT_PATCH_FILE} || echo "${options.outputName}=true" >> $GITHUB_OUTPUT`,
         ].join("\n"),
         // always run from root of repository
         // overrides default working directory which is set by some workflows using this function
@@ -202,6 +202,14 @@ export interface UploadGitPatchOptions {
    * @default - do not fail upon mutation
    */
   readonly mutationError?: string;
+
+  /**
+   * Paths to exclude from the git diff when detecting mutations.
+   * Uses git pathspec exclusion syntax (e.g., ':!yarn.lock').
+   *
+   * @default - no paths excluded
+   */
+  readonly excludePaths?: string[];
 }
 
 export interface CreatePullRequestOptions {

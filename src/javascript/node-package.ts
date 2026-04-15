@@ -404,6 +404,20 @@ export interface NodePackageOptions {
    * @default true
    */
   readonly deleteOrphanedLockFiles?: boolean;
+
+  /**
+   * Allow external tools (Dependabot, Snyk, Socket) to modify the lockfile
+   * without projen overwriting or rejecting the changes.
+   *
+   * When enabled, the lockfile is not marked as a projen-generated file,
+   * which means it won't appear in `.projen/files.json` or be annotated
+   * in `.gitattributes`. This allows external dependency management tools
+   * to open PRs that modify the lockfile without conflicting with projen's
+   * anti-tamper checks.
+   *
+   * @default false
+   */
+  readonly allowExternalLockfileModification?: boolean;
 }
 
 /**
@@ -687,6 +701,11 @@ export class NodePackage extends Component {
   public readonly lockFile: string;
 
   /**
+   * Whether external tools are allowed to modify the lockfile.
+   */
+  public readonly allowExternalLockfileModification: boolean;
+
+  /**
    * The task for installing project dependencies (non-frozen)
    */
   public readonly installTask: Task;
@@ -747,13 +766,17 @@ export class NodePackage extends Component {
 
     this.entrypoint = options.entrypoint ?? "lib/index.js";
     this.lockFile = determineLockfile(this.packageManager);
+    this.allowExternalLockfileModification =
+      options.allowExternalLockfileModification ?? false;
 
     // Clean up lockfiles from other package managers during migration
     if (options.deleteOrphanedLockFiles !== false) {
       this.deleteOrphanedLockFiles();
     }
 
-    this.project.annotateGenerated(`/${this.lockFile}`);
+    if (!this.allowExternalLockfileModification) {
+      this.project.annotateGenerated(`/${this.lockFile}`);
+    }
 
     const {
       npmAccess,

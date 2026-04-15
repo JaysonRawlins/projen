@@ -69,6 +69,16 @@ export interface BuildWorkflowCommonOptions {
    * @default {}
    */
   readonly env?: { [key: string]: string };
+
+  /**
+   * File paths to exclude from mutation detection during builds.
+   * When specified, changes to these files will not trigger self-mutation
+   * or anti-tamper failures. Useful for allowing external tools to modify
+   * lockfiles without conflicting with projen's build process.
+   *
+   * @default - no paths excluded
+   */
+  readonly mutationExcludePaths?: string[];
 }
 
 export interface BuildWorkflowOptions extends BuildWorkflowCommonOptions {
@@ -157,6 +167,7 @@ export class BuildWorkflow extends Component {
   private readonly artifactsDirectory: string;
 
   private readonly _postBuildJobs: string[] = [];
+  private readonly mutationExcludePaths: string[];
 
   constructor(project: Project, options: BuildWorkflowOptions) {
     super(project);
@@ -176,6 +187,7 @@ export class BuildWorkflow extends Component {
     this.artifactsDirectory =
       options.artifactsDirectory ?? DEFAULT_ARTIFACTS_DIRECTORY;
     ensureNotHiddenPath(this.artifactsDirectory, "artifactsDirectory");
+    this.mutationExcludePaths = options.mutationExcludePaths ?? [];
     this.name = options.name ?? workflowNameForProject("build", this.project);
     const mutableBuilds = options.mutableBuild ?? true;
 
@@ -439,6 +451,7 @@ export class BuildWorkflow extends Component {
         outputName: SELF_MUTATION_HAPPENED_OUTPUT,
         mutationError:
           "Files were changed during build (see build log). If this was triggered from a fork, you will need to update your branch.",
+        excludePaths: this.mutationExcludePaths,
       }),
 
       // upload the build artifact only if we have post-build jobs (otherwise, there's no point)

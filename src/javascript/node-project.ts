@@ -713,6 +713,10 @@ export class NodeProject extends GitHubProject {
     const buildWorkflowOptions: BuildWorkflowOptions =
       options.buildWorkflowOptions ?? {};
 
+    const lockfileExcludePaths = this.package.allowExternalLockfileModification
+      ? [this.package.lockFile]
+      : [];
+
     if (buildEnabled && (this.github || GitHub.of(this.root))) {
       this.buildWorkflow = new BuildWorkflow(this, {
         buildTask: this.buildTask,
@@ -722,6 +726,7 @@ export class NodeProject extends GitHubProject {
         mutableBuild: options.mutableBuild,
         workflowTriggers: options.buildWorkflowTriggers,
         permissions: workflowPermissions,
+        mutationExcludePaths: lockfileExcludePaths,
         ...buildWorkflowOptions,
         preBuildSteps: this.renderWorkflowSetup({
           installStepConfiguration: {
